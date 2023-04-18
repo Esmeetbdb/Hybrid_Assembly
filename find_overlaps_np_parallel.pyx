@@ -23,7 +23,6 @@ def compare_1(fasta_list, cmap_array, deviation, id, contig, position_id):
     row_idx = np.where(np.all(conditions_array, axis = 1))[0]
 
     for row in row_idx:
-        print([None, fasta_list[1], fasta_list[0], fasta_list[2], contig[row], id[row], position_id[row]])
         output_list.append([None, fasta_list[1], fasta_list[0], fasta_list[2], contig[row], id[row], position_id[row]])
 
 
@@ -92,11 +91,9 @@ def find_overlaps(db_name, deviation, n_threads):
     pop_overlap = []
     for item in pop_overlap_temp:
         for item2 in item:
-            print(type(item2[-1]))
             item2[0] = id
             id += 1
             pop_overlap.append(item2)
-    print(pop_overlap)
     pid = os.getpid()
     python_process = psutil.Process(pid)
     memoryUse = python_process.memory_info()[0]/2.**30  # memory use in GB...I think
