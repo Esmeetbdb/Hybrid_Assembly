@@ -183,6 +183,7 @@ def change_cmap_mapped_format(mapped_cmap, cursor):
 
 
 def merge_fa_cmap(mapped_cmaps, cmap, enzyme_sequence, fasta_sequence_dict, sorted_pos, sequence):
+    mapped_pos_number = 0
     if sequence == '':
         for position in sorted_pos[cmap]:
             if mapped_cmaps[cmap][position] == False:
@@ -195,6 +196,7 @@ def merge_fa_cmap(mapped_cmaps, cmap, enzyme_sequence, fasta_sequence_dict, sort
                 content = mapped_cmaps[cmap][position][0].split(",")
                 seq = fasta_sequence_dict[mapped_cmaps[cmap][position][1]][int(content[0]):int(content[1])]
                 sequence += seq
+                mapped_pos_number += 1
     else:
         for position in sorted_pos[cmap]:
             if mapped_cmaps[cmap][position] != False:
@@ -202,11 +204,13 @@ def merge_fa_cmap(mapped_cmaps, cmap, enzyme_sequence, fasta_sequence_dict, sort
                 seq = fasta_sequence_dict[mapped_cmaps[cmap][position][1]][int(content[0]):int(content[1])]
                 pos = position.split(',')
                 sequence = sequence[0:int(pos[0])]+seq+sequence[int(pos[1])::]
-    return [cmap, sequence]
+                mapped_pos_number += 1
+    return [cmap, sequence, mapped_pos_number]
 
 def merge(db_name, enzyme_sequence, fasta_sequence_dict, min_kmer_consecutive, n_threads, all_seq = {}):
     print("started merging")
     t = time.time()
+    mapped_pos_number = 0
     connection = sqlite3.connect("{}.db".format(db_name))
     cursor = connection.cursor()
     fasta_list = list(fasta_sequence_dict.keys())
@@ -223,7 +227,7 @@ def merge(db_name, enzyme_sequence, fasta_sequence_dict, min_kmer_consecutive, n
 
     for item in sequences_temp:
         all_seq[item[0]] = item[1]
-
+        mapped_pos_number += item[2]
     print("everything together took: {}".format(time.time()-t))
-    return all_seq, remove_fasta, remove_cmap
+    return all_seq, remove_fasta, remove_cmap, mapped_pos_number
 

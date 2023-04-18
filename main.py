@@ -40,15 +40,19 @@ def assemble(args):
     deviation_list = args.deviationlist.split(',')
     fasta_seq_dict = pf.get_contigs(args.Fasta)
     seq_dict = {}
+    mapped_pos_per_round_dict = {}
 
     for i in range(len(rounds_list)):
         print("Round: {}".format(i))
         fo.find_overlaps(args.prefix, int(deviation_list[i]), args.n_threads)
-        seq_dict, remove_fa, remove_cmap_list = mf.merge(args.prefix, args.Enzyme_site, fasta_seq_dict, rounds_list[i], args.n_threads, seq_dict)
+        seq_dict, remove_fa, remove_cmap_list, mapped_pos_number = mf.merge(args.prefix, args.Enzyme_site, fasta_seq_dict, rounds_list[i], args.n_threads, seq_dict)
+        mapped_pos_per_round_dict[i] = mapped_pos_number
         print("Number of fasta locations mapped: {}".format(len(remove_fa)))
         rp.remove_fasta(remove_fa, args.prefix)
         rp.remove_cmap(remove_cmap_list, args.prefix)
-    mo.make_fasta(args.prefix, seq_dict)
+    mo.counter_file(args.prefix, mapped_pos_per_round_dict)
+    if args.w_fasta:
+        mo.make_fasta(args.prefix, seq_dict)
 
 
 
@@ -61,10 +65,10 @@ def main():
     parser.add_argument("Enzyme_site", type = str, help = "Recognition site of the enzyme using in optical mapping.")
     parser.add_argument("prefix", type=str, help="Prefix of the final output file. Will be in fasta format.")
     parser.add_argument("--n_threads", "-c", type=int, default = 16, help="Number of threads to use during mapping.")
-    parser.add_argument("--database_name","-d", type = str, default = "Hybrid_assembly", help = "Name of the sql database that will be used during assembly step. Must be unique.")
     parser.add_argument("--k_mer", "-k", type = int, default = 5, help = "K-mer size used for overlapping fasta and optical mapping sites. Larger genomes will require larger k-mer sizes. Larger k-mer sizes lower sensitivity.")
     parser.add_argument("--deviationlist", "-D", type=str, default="500,1000,2000", help = "The max deviation applied to find overlaps for each round of alignment")
     parser.add_argument("--overlap_len", "-o", type=str, default="6,8,10", help = "The number of positions that have to overlap at least for an alignment to be considered correct")
+    parser.add_argument("--w_fasta", "-w", type=bool, default=True, help = "Set to false if no sequence file should be made at the end.")
     parser.set_defaults(func=assemble)
     args = parser.parse_args(sys.argv[1:])
     args.func(args)
