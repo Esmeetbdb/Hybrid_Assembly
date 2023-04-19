@@ -51,7 +51,7 @@ def assemble(args):
         rp.remove_fasta(remove_fa, args.prefix)
         rp.remove_cmap(remove_cmap_list, args.prefix)
     mo.counter_file(args.prefix, mapped_pos_per_round_dict)
-    if args.w_fasta:
+    if args.w_fasta != False:
         mo.make_fasta(args.prefix, seq_dict)
 
 
