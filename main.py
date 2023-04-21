@@ -29,7 +29,7 @@ def assemble(args):
     cmap2sql(args.cmap, args.prefix, args.k_mer)
     fa2sql(args.Fasta, args.Enzyme_site, args.prefix, args.k_mer)
 
-    import map_fasta_parallel as mf
+    import run_map_fasta_parallel as mf
     import remove_pos as rp
     import find_overlaps_np_parallel as fo
     import process_fasta as pf
