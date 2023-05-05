@@ -6,7 +6,7 @@ import numpy
 
 setup(
     name = 'hybrid assembler',
-    version = '1.2.1',
+    version = '1.2.2',
 
     url = "https://github.com/Esmeetbdb/Hybrid_Assembly",
     author = "Esmee ten Berk de Boer",

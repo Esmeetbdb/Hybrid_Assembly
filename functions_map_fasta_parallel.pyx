@@ -1,3 +1,14 @@
+import time
+import sqlite3
+import numpy as np
+cimport numpy as np
+from joblib import Parallel, delayed
+import os
+import psutil
+cimport cython
+@cython.boundscheck(False)
+@cython.wraparound(False)
+
 def get_positions(table_type, cursor):
     """
     Extract position ids and enzyme sites from sql table and store into memory as np
@@ -44,7 +55,7 @@ def get_cmap_pos_dict(cmap_list, cursor):
     """
     cmap_pos_dict = {}
     for cmap in cmap_list:
-        cmap_pos_dict[cmap] = r.get_all_positions_in_cmap(cmap, cursor)
+        cmap_pos_dict[cmap] = get_all_positions_in_cmap(cmap, cursor)
 
     return cmap_pos_dict
 
@@ -186,7 +197,7 @@ def get_idx_overlapping_fasta_locations(sorted_data):
         for j in range(len(sorted_data)):
             if (j in delete_list) or (i >= j):
                 continue
-             elif any(np.isin(sorted_data[i][1], sorted_data[j][1])):
+            elif any(np.isin(sorted_data[i][1], sorted_data[j][1])):
                 delete_list.add(j)
     return delete_list
 
@@ -205,7 +216,7 @@ def get_pos_from_loc(contig_name, loc, np_positions, np_name_id):
     row_idx = np.where(conditions)[0]
     positions = []
     for i in range(np_positions.shape[1]-1):
-        positions.append("{},{}".format(np_positions[row_idx,i], np_positions[row_idx, i + 1]))
+        positions.append("{},{}".format(np_positions[row_idx,i][0], np_positions[row_idx, i + 1][0]))
     return positions
 
 
@@ -225,7 +236,6 @@ def change_output_format(sorted_data, np_positions_cmap, np_name_id_cmap, np_pos
     :return: remove_cmap: List of cmap position ids that have been mapped and should be removed before further
     alignment rounds
     """
-    print(len(sorted_data))
     final_output = {}
     remove_fasta = []
     remove_cmap = []
@@ -275,11 +285,11 @@ def get_mapping_location_fasta(fasta_contig, min_kmer_consecutive, db_name, np_p
     :return: list with format [{cmap_name:{"cmap_start:cmap_stop":["fasta_start:fasta_stop", fasta_name]}},
     remove_fasta, remove_cmap]
     """
-
+    t = time.time()
     mapped_pos_temp = get_overlapping_fasta(fasta_contig, db_name)
     mapped_positions = change_format_overlap_fasta(mapped_pos_temp)
     del mapped_pos_temp
-
+    
     final_fasta_loc, final_cmap_loc, final_names_overlap_len = get_consecutive_overlapping_kmers(mapped_positions,
                                                                                                  min_kmer_consecutive,
                                                                                                  fasta_contig)
@@ -300,7 +310,6 @@ def get_mapping_location_fasta(fasta_contig, min_kmer_consecutive, db_name, np_p
                                                                    np_name_id_cmap,
                                                                    np_positions_fasta,
                                                                    np_name_id_fasta)
-    print("Changing the output format took: {}".format(time.time()-t), len(sorted_data))
     return [final_output, remove_fasta, remove_cmap]
 
 
@@ -320,12 +329,12 @@ def init_cmap_dict(cmap_name, np_positions_cmap, np_name_id_cmap, positions):
     mapped_cmap[cmap_name] = {}
     for i in range(len(positions)):
         if i == 0:
-            sorted_pos.append(get_pos_from_loc(cmap_name, positions[1], np_positions_cmap, np_name_id_cmap))
-            cmap_pos = get_pos_from_loc(cmap_name, positions[1], np_positions_cmap, np_name_id_cmap)
+            sorted_pos += get_pos_from_loc(cmap_name, positions[i], np_positions_cmap, np_name_id_cmap)
+            cmap_pos = get_pos_from_loc(cmap_name, positions[i], np_positions_cmap, np_name_id_cmap)
             for j in range(len(cmap_pos)):
                 mapped_cmap[cmap_pos[j]] = False
         else:
-            cmap_pos = get_pos_from_loc(cmap_name, positions[1], np_positions_cmap, np_name_id_cmap)[-1]
+            cmap_pos = get_pos_from_loc(cmap_name, positions[i], np_positions_cmap, np_name_id_cmap)[-1]
             sorted_pos.append(cmap_pos)
             mapped_cmap[cmap_pos] = False
     return [cmap_name, mapped_cmap, sorted_pos]
@@ -388,7 +397,7 @@ def merge_fa_cmap(mapped_cmaps, cmap, sorted_pos, enzyme_sequence, fasta_sequenc
     mapped_pos_number = 0
     if sequence == '':
         for position in sorted_pos:
-            if mapped_cmaps[cmap][position] == False:
+            if not mapped_cmaps[cmap][position]:
                 content = position.split(",")
                 n_count = int(content[1]) - int(content[0])-len(enzyme_sequence)
                 sequence += enzyme_sequence
@@ -400,6 +409,7 @@ def merge_fa_cmap(mapped_cmaps, cmap, sorted_pos, enzyme_sequence, fasta_sequenc
                 sequence += seq
                 mapped_pos_number += 1
     else:
+        #change so that the seq is a list that is changed
         for position in sorted_pos[cmap]:
             if mapped_cmaps[cmap][position] != False:
                 content = mapped_cmaps[cmap][position][0].split(",")

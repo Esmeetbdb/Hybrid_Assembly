@@ -94,13 +94,13 @@ def merge(db_name, enzyme_sequence, fasta_sequence_dict, min_kmer_consecutive, n
     cmap_mapping, sorted_pos, remove_fasta, remove_cmap = get_all_mapping_info(db_name, cmap_list,
                                                                                  min_kmer_consecutive,
                                                                                  fasta_list, n_threads)
-
+    print('getting all overlaps took: {}'.format(time.time()-t))
     for cmap in cmap_list:
         if cmap not in all_seq:
             all_seq[cmap] = ''
 
     sequences_temp = Parallel(n_jobs=int(n_threads))(
-        delayed(r.merge_fa_cmap)(cmap_mapping, cmap, sorted_pos, enzyme_sequence, fasta_sequence_dict, all_seq[cmap])
+        delayed(r.merge_fa_cmap)(cmap_mapping, cmap, sorted_pos[cmap], enzyme_sequence, fasta_sequence_dict, all_seq[cmap])
         for cmap in cmap_list)
 
     for item in sequences_temp:
@@ -108,3 +108,26 @@ def merge(db_name, enzyme_sequence, fasta_sequence_dict, min_kmer_consecutive, n
         mapped_pos_number += item[2]
     print("everything together took: {}".format(time.time() - t))
     return all_seq, remove_fasta, remove_cmap, mapped_pos_number
+
+
+def get_contigs(fasta):
+    t = time.time()
+    contigs = {}
+    with open(fasta, 'r') as f:
+        sequence = f.read()
+
+    split_contigs = sequence.split('>')
+    del sequence
+    del split_contigs[0]
+
+    for contig in split_contigs:
+        content = contig.split("\n", 1)
+        contigs[content[0].strip()] = content[1].replace("\n", "").upper()
+    temp_reverse = {}
+    for contig in contigs:
+        temp_reverse['{}_reverse'.format(contig)] = contigs[contig][::-1]
+    contigs.update(temp_reverse)
+    print('Finished obtaining contigs, took: {}'.format(time.time()-t))
+    return contigs
+
+
