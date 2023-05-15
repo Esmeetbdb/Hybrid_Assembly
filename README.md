@@ -1,7 +1,7 @@
 # Hybrid_Assembly
 This tool is made as a part of my Master's thesis (2023)
 
-##Instalation
+## Instalation
 The hybdrid assembly tool requires: Numpy, sqlite3, joblib, os, psutil, cython, sys, and setuptools
 To download the pipeline please run
 ```
@@ -13,7 +13,7 @@ python setup.py build_ext --inplace
 ```
 to cythonize the code and improve performance.
 
-##Run
+## Run
 To run the pipeline use the following command:
 ```
 python main.py <Fasta> <Cmap> <Enzyme_site> <prefix> [options]
